@@ -1,0 +1,56 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "SE1-Project/**"
+      - ".github/workflows/frontend-ci.yml"
+  pull_request:
+    branches: ["main", "master"]
+    paths:
+      - "SE1-Project/**"
+      - ".github/workflows/frontend-ci.yml"
+
+jobs:
+  build:
+    name: Lint, test & build (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["20", "22"]
+
+    defaults:
+      run:
+        working-directory: SE1-Project
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: SE1-Project/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint -- --max-warnings=999 || true
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build artifact
+        if: matrix.node-version == '22'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: SE1-Project/dist
+          retention-days: 7

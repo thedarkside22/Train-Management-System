@@ -1,15 +1,16 @@
 """
 passenger_route.py - Passenger Management by Azzam
 POST, GET list, GET by id, GET by national_id
+Sprint 3 - Azzam: GET /api/passengers/{id}/bookings (US-017)
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from typing import Optional
 import math
 from database import get_db
-from models import Passenger
+from models import Passenger, Reservation, Schedule
 from schemas import PassengerCreate, PassengerUpdate, PassengerResponse, PaginatedResponse
 from auth import get_current_user
 
@@ -68,3 +69,59 @@ def get_by_national_id(national_id: str, db: Session=Depends(get_db), user=Depen
     if not p:
         raise HTTPException(404, f"No passenger with national ID '{national_id}'")
     return p
+
+
+@router.get("/{passenger_id}/bookings")
+def get_passenger_bookings(
+    passenger_id: int,
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """Sprint 3 - US-017: Booking history for a passenger.
+
+    Returns every reservation (confirmed and cancelled) ordered by most recent first.
+    """
+    p = db.query(Passenger).filter(Passenger.id == passenger_id).first()
+    if not p:
+        raise HTTPException(404, f"Passenger {passenger_id} not found")
+
+    q = db.query(Reservation).options(
+        joinedload(Reservation.schedule).joinedload(Schedule.train)
+    ).filter(Reservation.passenger_id == passenger_id)
+
+    if status:
+        q = q.filter(Reservation.status == status)
+
+    reservations = q.order_by(Reservation.booked_at.desc()).all()
+
+    items = []
+    for r in reservations:
+        items.append({
+            "id": r.id,
+            "booking_reference": r.booking_reference,
+            "status": r.status.value,
+            "price_paid": r.price_paid,
+            "booked_at": r.booked_at.isoformat() if r.booked_at else None,
+            "cancelled_at": r.cancelled_at.isoformat() if r.cancelled_at else None,
+            "train_name": r.schedule.train.name,
+            "origin": r.schedule.origin,
+            "destination": r.schedule.destination,
+            "departure_date": str(r.schedule.departure_date),
+            "departure_time": str(r.schedule.departure_time),
+        })
+
+    confirmed = sum(1 for r in reservations if r.status.value == "confirmed")
+    cancelled = sum(1 for r in reservations if r.status.value == "cancelled")
+    total_spent = sum(r.price_paid for r in reservations if r.status.value == "confirmed")
+
+    return {
+        "passenger": PassengerResponse.model_validate(p).model_dump(mode="json"),
+        "summary": {
+            "total_bookings": len(reservations),
+            "confirmed": confirmed,
+            "cancelled": cancelled,
+            "total_spent": float(total_spent),
+        },
+        "bookings": items,
+    }

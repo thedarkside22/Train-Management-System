@@ -1,9 +1,10 @@
 """
 reservation_route.py - Ticket Booking by Ziyad
 POST (book), GET list, GET by id, GET by reference
-Includes seat availability logic
+Sprint 3 - Azzam: DELETE (cancel) with seat reallocation + refund logic
 """
 
+from datetime import datetime, date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
@@ -11,7 +12,7 @@ from typing import Optional
 import math, string, random
 from database import get_db
 from models import Reservation, Schedule, Passenger, ReservationStatus
-from schemas import ReservationCreate, BookingConfirmation, PaginatedResponse
+from schemas import ReservationCreate, BookingConfirmation, PaginatedResponse, CancellationResponse
 from auth import get_current_user
 
 
@@ -137,4 +138,55 @@ def get_by_reference(booking_reference:str, db: Session=Depends(get_db), user=De
     return _reservation_dict(r)
 
 
-    
+def _refund_percentage(departure_date: date) -> float:
+    """Refund schedule (Sprint 3 - US-012):
+    >=7 days before departure: 100%
+    3-6 days: 75%
+    1-2 days: 50%
+    same day or past: 0%
+    """
+    today = date.today()
+    days = (departure_date - today).days
+    if days >= 7:
+        return 1.0
+    if days >= 3:
+        return 0.75
+    if days >= 1:
+        return 0.5
+    return 0.0
+
+
+@router.delete("/{reservation_id}", response_model=CancellationResponse)
+def cancel_reservation(reservation_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    """Cancel a reservation. Reallocates the seat and computes a refund."""
+    r = db.query(Reservation).options(
+        joinedload(Reservation.passenger),
+        joinedload(Reservation.schedule).joinedload(Schedule.train)
+    ).filter(Reservation.id == reservation_id).first()
+    if not r:
+        raise HTTPException(404, f"Reservation {reservation_id} not found")
+    if r.status == ReservationStatus.CANCELLED:
+        raise HTTPException(409, f"Reservation {r.booking_reference} is already cancelled")
+
+    try:
+        pct = _refund_percentage(r.schedule.departure_date)
+        refund = round(r.price_paid * pct, 2)
+
+        r.status = ReservationStatus.CANCELLED
+        r.cancelled_at = datetime.utcnow()
+        # Seat reallocation - return the seat to the pool
+        r.schedule.available_seats += 1
+
+        db.commit(); db.refresh(r)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"Cancellation failed: {str(e)}")
+
+    return CancellationResponse(
+        message="Reservation cancelled. Seat returned to inventory.",
+        booking_reference=r.booking_reference,
+        refund_amount=refund,
+        refund_percentage=pct,
+        cancelled_at=r.cancelled_at.isoformat(),
+        remaining_seats=r.schedule.available_seats,
+    )

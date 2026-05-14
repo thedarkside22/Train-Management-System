@@ -3,11 +3,12 @@ auth.py - Authentication System Sprint 1 - Ziyad
 Password hashing, JWT tokens, and role checking.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta,timezone
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from database import get_db
@@ -33,7 +34,7 @@ def verify_password(plain:str, hashed:str) -> bool:
 
 def create_access_token(data:dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -47,7 +48,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db:Session = Depends(g
         user_id: int = payload.get("user_id")
         if user_id is None:
             raise cred_error
-    except JWTError:
+    except InvalidTokenError:
         raise cred_error
     
     user = db.query(User).filter(User.id == user_id).first()

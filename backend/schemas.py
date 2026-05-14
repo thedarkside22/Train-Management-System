@@ -268,3 +268,53 @@ class BookingConfirmation(BaseModel):
     departure_time: str
     price_paid: float
     remaining_seats: int
+
+
+
+# --------- Sprint 3 schemas ---------
+
+
+class CancellationResponse(BaseModel):
+    message: str
+    booking_reference: str
+    refund_amount: float
+    refund_percentage: float
+    cancelled_at: str
+    remaining_seats: int
+
+
+class DashboardStats(BaseModel):
+    total_trains: int
+    active_trains: int
+    total_schedules: int
+    upcoming_schedules: int
+    total_passengers: int
+    total_reservations: int
+    confirmed_reservations: int
+    cancelled_reservations: int
+    bookings_today: int
+    revenue_today: float
+    revenue_this_week: float
+    revenue_total: float
+    average_occupancy: float
+
+
+class RevenuePoint(BaseModel):
+    label: str
+    revenue: float
+    bookings: int
+
+
+class OccupancyPoint(BaseModel):
+    schedule_id: int
+    route: str
+    departure_date: str
+    occupancy_rate: float
+    booked: int
+    capacity: int
+
+
+class ReportRequest(BaseModel):
+    period: str = Field(..., description="daily | weekly | monthly")
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None

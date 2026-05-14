@@ -1,3 +1,24 @@
+# Python
 venv/
+.venv/
 __pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Local DBs / env
 .env
+*.db
+backend/train_system.db
+backend/ci_test.db
+backend/e2e.db
+
+# Node / Vite
+node_modules/
+SE1-Project/dist/
+SE1-Project/.vite/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
