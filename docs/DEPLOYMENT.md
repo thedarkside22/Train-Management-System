@@ -51,6 +51,7 @@ sudo tee /etc/trains.env >/dev/null <<EOF
 DATABASE_URL=postgresql://trains_app:CHANGE_ME@localhost:5432/trains
 CORS_ORIGINS=https://trains.example.com
 SQL_ECHO=false
+PYTHON_VERSION=3.12.11
 EOF
 ```
 
@@ -114,6 +115,7 @@ Backend service:
 DATABASE_URL=<Render Postgres internal connection string>
 CORS_ORIGINS=https://your-frontend-service.onrender.com
 SQL_ECHO=false
+PYTHON_VERSION=3.12.11
 ```
 
 Frontend static site:

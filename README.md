@@ -166,6 +166,7 @@ Backend service:
 DATABASE_URL=postgresql://...
 CORS_ORIGINS=https://your-frontend-service.onrender.com
 SQL_ECHO=false
+PYTHON_VERSION=3.12.11
 ```
 
 Frontend static site:
