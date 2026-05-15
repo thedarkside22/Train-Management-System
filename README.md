@@ -49,6 +49,20 @@ npm run dev
 # UI: http://localhost:5173
 ```
 
+For deployment, the frontend reads the backend URL from `VITE_API_BASE_URL`.
+Example:
+
+```env
+VITE_API_BASE_URL=https://your-backend-service.onrender.com/api
+```
+
+The backend reads production database and CORS settings from:
+
+```env
+DATABASE_URL=postgresql://...
+CORS_ORIGINS=https://your-frontend-service.onrender.com
+```
+
 ### Tests
 
 ```bash

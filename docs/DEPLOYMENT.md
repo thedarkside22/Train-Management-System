@@ -35,6 +35,9 @@ Capture the connection string for the next step:
 postgresql://trains_app:CHANGE_ME@localhost:5432/trains
 ```
 
+On Render, create a Render Postgres database and use its internal connection
+string as the backend service's `DATABASE_URL`.
+
 ## 3. Backend
 
 ```bash
@@ -46,6 +49,8 @@ pip install -r requirements.txt
 # environment
 sudo tee /etc/trains.env >/dev/null <<EOF
 DATABASE_URL=postgresql://trains_app:CHANGE_ME@localhost:5432/trains
+CORS_ORIGINS=https://trains.example.com
+SQL_ECHO=false
 EOF
 ```
 
@@ -83,8 +88,42 @@ npm run build
 sudo cp -r dist /var/www/trains
 ```
 
-The frontend assumes the API at `http://127.0.0.1:8000/api`. For production
-edit `src/services/api.js` (or set up a reverse proxy as below).
+The frontend uses `VITE_API_BASE_URL`. For local development it falls back to
+`http://127.0.0.1:8000/api`. For production, set it before building:
+
+```bash
+VITE_API_BASE_URL=https://api.trains.example.com/api npm run build
+```
+
+On Render Static Sites, set `VITE_API_BASE_URL` in the frontend service
+environment variables and rebuild the frontend.
+
+## Render quick setup
+
+This repo includes a `render.yaml` Blueprint with:
+
+- `train-system-api`: FastAPI backend.
+- `train-system-web`: React static site.
+- `train-system-db`: Render Postgres database.
+
+If you use the Render dashboard manually instead, set these variables:
+
+Backend service:
+
+```env
+DATABASE_URL=<Render Postgres internal connection string>
+CORS_ORIGINS=https://your-frontend-service.onrender.com
+SQL_ECHO=false
+```
+
+Frontend static site:
+
+```env
+VITE_API_BASE_URL=https://your-backend-service.onrender.com/api
+```
+
+After changing frontend environment variables on Render, trigger a new frontend
+deploy so Vite bakes the new API URL into the static files.
 
 ## 5. Nginx reverse proxy
 

@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+import { API_BASE_URL } from '../config/api';
 
 function authHeaders() {
     const stored = localStorage.getItem('user');
@@ -191,20 +191,18 @@ export async function getReport(period = 'daily', startDate, endDate) {
     return apiFetch(`/reports/?${params.toString()}`);
 }
 
-const API_BASE_URL_PUBLIC = 'http://127.0.0.1:8000/api';
-
 export function getReportExportUrl(format, period, startDate, endDate) {
     const params = new URLSearchParams({ period });
     if (startDate) params.append('start_date', startDate);
     if (endDate) params.append('end_date', endDate);
-    return `${API_BASE_URL_PUBLIC}/reports/export/${format}?${params.toString()}`;
+    return `${API_BASE_URL}/reports/export/${format}?${params.toString()}`;
 }
 
 export async function downloadReport(format, period, startDate, endDate) {
     const params = new URLSearchParams({ period });
     if (startDate) params.append('start_date', startDate);
     if (endDate) params.append('end_date', endDate);
-    const url = `${API_BASE_URL_PUBLIC}/reports/export/${format}?${params.toString()}`;
+    const url = `${API_BASE_URL}/reports/export/${format}?${params.toString()}`;
     const resp = await fetch(url, { headers: { ...authHeaders() } });
     if (!resp.ok) throw new Error(`Download failed (${resp.status})`);
     const blob = await resp.blob();

@@ -6,6 +6,8 @@ Sprint 2: + passengers, schedules, reservations
 Sprint 3: + cancellation, dashboard stats, reports, booking history, analytics
 """
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
@@ -21,6 +23,13 @@ from routes.analytics_route import router as analytics_router
 
 Base.metadata.create_all(bind=engine)
 
+
+def get_cors_origins():
+    defaults = ["http://localhost:3000", "http://localhost:5173"]
+    configured = os.getenv("CORS_ORIGINS", "")
+    origins = [origin.strip().rstrip("/") for origin in configured.split(",") if origin.strip()]
+    return defaults + [origin for origin in origins if origin not in defaults]
+
 app = FastAPI(
     title="Train Schedule and Reservation System",
     version="0.3.0",
@@ -30,7 +39,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=get_cors_origins(),
     allow_credentials=True, allow_methods=["*"], allow_headers=["*"]
 )
 
