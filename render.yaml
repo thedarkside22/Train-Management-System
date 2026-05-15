@@ -7,16 +7,19 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: train-management-db
+          property: connectionString
       - key: CORS_ORIGINS
-        sync: false
+        value: https://train-management-frontend.onrender.com
       - key: SQL_ECHO
         value: "false"
       - key: PYTHON_VERSION
         value: "3.12.11"
 
-  - type: static
+  - type: web
     name: train-management-frontend
+    runtime: static
     rootDir: SE1-Project
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
@@ -24,8 +27,13 @@ services:
       - key: NODE_VERSION
         value: "22"
       - key: VITE_API_BASE_URL
-        value: https://train-management-system-backend.onrender.com/api
+        value: https://train-management-api.onrender.com/api
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
+
+databases:
+  - name: train-management-db
+    databaseName: trains
+    user: trains_app
