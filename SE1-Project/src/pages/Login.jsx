@@ -40,9 +40,9 @@ const Login = () => {
         <form onSubmit={handleSubmit}>
           <InputField
             id="username"
-            label="Username"
+            label="Username or email"
             type="text"
-            placeholder="Enter your username"
+            placeholder="Enter your username or email"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
