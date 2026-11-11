@@ -15,6 +15,19 @@ def test_register_and_login(client):
     assert body["access_token"]
 
 
+def test_login_with_email_or_different_case(client):
+    client.post("/api/auth/register", json={
+        "username": "carol", "email": "carol@example.com",
+        "password": "Password1", "full_name": "Carol", "role": "staff",
+    })
+    r = client.post("/api/auth/login", data={"username": "carol@example.com", "password": "Password1"})
+    assert r.status_code == 200
+    assert r.json()["username"] == "carol"
+
+    r = client.post("/api/auth/login", data={"username": "Carol", "password": "Password1"})
+    assert r.status_code == 200
+
+
 def test_login_wrong_password_rejected(client):
     client.post("/api/auth/register", json={
         "username": "bob", "email": "bob@example.com",

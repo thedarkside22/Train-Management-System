@@ -7,6 +7,7 @@ POST /api/auth/register, POST /api/auth/login, GET /api/auth/me
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from database import get_db
 from models import User
@@ -41,7 +42,15 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 def login(data: OAuth2PasswordRequestForm=Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == data.username).first()
+    # Accept either username or email, case-insensitively, so people who
+    # type the email they just registered with can still sign in.
+    identifier = data.username.strip().lower()
+    user = db.query(User).filter(
+        or_(
+            func.lower(User.username) == identifier,
+            func.lower(User.email) == identifier,
+        )
+    ).first()
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(401, "Invalid username or password")
     if not user.is_active:
