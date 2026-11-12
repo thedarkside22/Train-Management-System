@@ -24,9 +24,6 @@ Losing that secret means losing the encrypted data, so back it up.
 import base64
 import hashlib
 import hmac
-import os
-import secrets
-import sys
 from functools import lru_cache
 from pathlib import Path
 
@@ -35,8 +32,10 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from sqlalchemy.types import String, TypeDecorator
 
+import app_secrets
+from app_secrets import MIN_SECRET_LENGTH
+
 SECRET_ENV_VAR = "DATA_ENCRYPTION_KEY"
-MIN_SECRET_LENGTH = 32
 
 # Room for the ciphertext of a value up to 127 bytes long (emails are capped at 100).
 CIPHERTEXT_LENGTH = 255
@@ -81,34 +80,8 @@ class FieldCipher:
 
 
 def load_secret() -> str:
-    """Read the secret from the environment.
-
-    A real deployment (anything that is not SQLite) must provide it. For local
-    SQLite development a key file is created on first use so the app runs
-    without any setup.
-    """
-    secret = os.getenv(SECRET_ENV_VAR)
-    if secret:
-        return secret
-
-    database_url = os.getenv("DATABASE_URL", "sqlite:///./train_system.db")
-    if not database_url.startswith("sqlite"):
-        raise RuntimeError(
-            f"{SECRET_ENV_VAR} is not set. It is required to encrypt passenger data. "
-            'Generate one with: python -c "import secrets; print(secrets.token_urlsafe(48))"'
-        )
-
-    if LOCAL_KEY_FILE.exists():
-        return LOCAL_KEY_FILE.read_text().strip()
-
-    secret = secrets.token_urlsafe(48)
-    LOCAL_KEY_FILE.write_text(secret)
-    print(
-        f"WARNING: {SECRET_ENV_VAR} is not set. Generated a local development key in "
-        f"{LOCAL_KEY_FILE}. Do not commit it and do not use it in production.",
-        file=sys.stderr,
-    )
-    return secret
+    """The secret that every passenger-data key is derived from (see app_secrets.py)."""
+    return app_secrets.load_secret(SECRET_ENV_VAR, LOCAL_KEY_FILE)
 
 
 @lru_cache(maxsize=1)

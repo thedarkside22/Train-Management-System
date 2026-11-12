@@ -49,12 +49,16 @@ pip install -r requirements.txt
 # environment
 sudo tee /etc/trains.env >/dev/null <<EOF
 DATABASE_URL=postgresql://trains_app:CHANGE_ME@localhost:5432/trains
+SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 DATA_ENCRYPTION_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 CORS_ORIGINS=https://trains.example.com
 SQL_ECHO=false
 PYTHON_VERSION=3.12.11
 EOF
 ```
+
+`SECRET_KEY` signs login tokens (JWT). The backend refuses to start on
+PostgreSQL without it. Changing it logs every user out.
 
 `DATA_ENCRYPTION_KEY` encrypts passenger national IDs, phone numbers and
 emails in the database. The backend refuses to start on PostgreSQL without it.
@@ -120,7 +124,8 @@ Backend service:
 
 ```env
 DATABASE_URL=<Render Postgres internal connection string>
-DATA_ENCRYPTION_KEY=<long random secret, at least 32 characters>
+SECRET_KEY=<long random secret, at least 32 characters>
+DATA_ENCRYPTION_KEY=<a different long random secret, at least 32 characters>
 CORS_ORIGINS=https://your-frontend-service.onrender.com
 SQL_ECHO=false
 PYTHON_VERSION=3.12.11

@@ -4,6 +4,7 @@ Password hashing, JWT tokens, and role checking.
 """
 
 from datetime import datetime, timedelta,timezone
+from pathlib import Path
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -11,11 +12,22 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+from app_secrets import load_secret
 from database import get_db
 from models import User
 
 
-SECRET_KEY = "6733f17dd5dfb3556969e21d544bc1c2e50cab07667e5093c09c4af49afd3709"
+# The signing key used to be written on this line. It is still in the public
+# git history, so anyone can forge a login token with it. It must never be reused.
+LEAKED_SECRET_KEY = "6733f17dd5dfb3556969e21d544bc1c2e50cab07667e5093c09c4af49afd3709"
+
+# Read from the SECRET_KEY environment variable (see app_secrets.py).
+SECRET_KEY = load_secret("SECRET_KEY", Path(__file__).resolve().parent / ".jwt_secret_key")
+if SECRET_KEY == LEAKED_SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY is set to the old key that was published in the repository. Generate a new one."
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 

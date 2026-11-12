@@ -14,6 +14,9 @@ services:
       # somewhere safe, because the data cannot be read without it.
       - key: DATA_ENCRYPTION_KEY
         generateValue: true
+      # Signs login tokens (JWT).
+      - key: SECRET_KEY
+        generateValue: true
       - key: CORS_ORIGINS
         value: https://train-management-frontend.onrender.com
       - key: SQL_ECHO

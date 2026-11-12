@@ -90,7 +90,8 @@ DATABASE_URL=sqlite:///./train_system.db
 Passenger national IDs, phone numbers and emails are encrypted in the database
 (see `backend/encryption.py`). With local SQLite a key is generated on first run
 in `backend/.data_encryption_key`. That file is git-ignored; a database file
-only works together with the key that encrypted it.
+only works together with the key that encrypted it. The key that signs login
+tokens is generated the same way, in `backend/.jwt_secret_key`.
 
 ### 2. Frontend
 
@@ -169,15 +170,20 @@ Backend service:
 
 ```env
 DATABASE_URL=postgresql://...
-DATA_ENCRYPTION_KEY=<long random secret, at least 32 characters>
+SECRET_KEY=<long random secret, at least 32 characters>
+DATA_ENCRYPTION_KEY=<a different long random secret, at least 32 characters>
 CORS_ORIGINS=https://your-frontend-service.onrender.com
 SQL_ECHO=false
 PYTHON_VERSION=3.12.11
 ```
 
-`DATA_ENCRYPTION_KEY` encrypts passenger personal data. The backend will not
-start on PostgreSQL without it. Keep a backup: if it is lost or changed, the
-encrypted data cannot be read.
+The backend will not start on PostgreSQL without both secrets.
+
+`SECRET_KEY` signs login tokens. Changing it logs every user out, which is
+harmless.
+
+`DATA_ENCRYPTION_KEY` encrypts passenger personal data. Keep a backup: if it is
+lost or changed, the encrypted data cannot be read.
 
 Frontend static site:
 
