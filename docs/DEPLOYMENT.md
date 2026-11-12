@@ -49,11 +49,18 @@ pip install -r requirements.txt
 # environment
 sudo tee /etc/trains.env >/dev/null <<EOF
 DATABASE_URL=postgresql://trains_app:CHANGE_ME@localhost:5432/trains
+DATA_ENCRYPTION_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 CORS_ORIGINS=https://trains.example.com
 SQL_ECHO=false
 PYTHON_VERSION=3.12.11
 EOF
 ```
+
+`DATA_ENCRYPTION_KEY` encrypts passenger national IDs, phone numbers and
+emails in the database. The backend refuses to start on PostgreSQL without it.
+Store a copy outside the server: if the key is lost or changed, the encrypted
+data cannot be read. On first start with the key set, any passenger rows left
+in plaintext by an older version are encrypted automatically.
 
 ### systemd unit
 
@@ -113,6 +120,7 @@ Backend service:
 
 ```env
 DATABASE_URL=<Render Postgres internal connection string>
+DATA_ENCRYPTION_KEY=<long random secret, at least 32 characters>
 CORS_ORIGINS=https://your-frontend-service.onrender.com
 SQL_ECHO=false
 PYTHON_VERSION=3.12.11

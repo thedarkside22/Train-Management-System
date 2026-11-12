@@ -11,6 +11,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
+from encryption_migration import migrate_passenger_encryption
 from routes.auth_routes import router as auth_router
 from routes.train_routes import router as train_router
 from routes.passenger_route import router as passenger_route
@@ -22,6 +23,8 @@ from routes.analytics_route import router as analytics_router
 
 
 Base.metadata.create_all(bind=engine)
+# Encrypts passenger data left in plaintext by older versions. Does nothing once upgraded.
+migrate_passenger_encryption(engine)
 
 
 def get_cors_origins():

@@ -10,6 +10,10 @@ services:
         fromDatabase:
           name: train-management-db
           property: connectionString
+      # Encrypts passenger personal data. Generated once by Render; copy it
+      # somewhere safe, because the data cannot be read without it.
+      - key: DATA_ENCRYPTION_KEY
+        generateValue: true
       - key: CORS_ORIGINS
         value: https://train-management-frontend.onrender.com
       - key: SQL_ECHO

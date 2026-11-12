@@ -9,9 +9,10 @@ Sprint 2: Schedule, Passenger, Reservation
 
 from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Enum, Date, Time, CheckConstraint, UniqueConstraint
 
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 from sqlalchemy.sql import func
 from database import Base
+from encryption import EncryptedString, blind_index
 import enum
 
 
@@ -106,10 +107,22 @@ class Passenger(Base):
     __tablename__ = "passengers"
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     full_name = Column(String(100), nullable=False)
-    national_id = Column(String(10), unique=True, nullable=False, index=True)
-    email = Column(String(100), unique=True, nullable=True)
-    phone = Column(String(15), nullable=False)
+
+    # Personal data is encrypted at rest (see encryption.py). Each encrypted
+    # column has a "*_hash" blind index for exact lookups and uniqueness,
+    # because ciphertext itself cannot be searched.
+    national_id = Column(EncryptedString, nullable=False)
+    national_id_hash = Column(String(64), unique=True, nullable=False, index=True)
+    email = Column(EncryptedString, nullable=True)
+    email_hash = Column(String(64), unique=True, nullable=True, index=True)
+    phone = Column(EncryptedString, nullable=False)
+    phone_hash = Column(String(64), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     reservations = relationship("Reservation", back_populates="passenger")
+
+    @validates("national_id", "email", "phone")
+    def _keep_blind_index_in_sync(self, field, value):
+        setattr(self, f"{field}_hash", None if value is None else blind_index(field, value))
+        return value
  

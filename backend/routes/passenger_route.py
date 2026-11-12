@@ -13,18 +13,21 @@ from database import get_db
 from models import Passenger, Reservation, Schedule
 from schemas import PassengerCreate, PassengerUpdate, PassengerResponse, PaginatedResponse
 from auth import get_current_user
+from encryption import blind_index
 
 
 router = APIRouter(prefix="/passengers", tags=["Passengers"])
 
 
+# national_id, email and phone are encrypted in the database, so they are
+# matched through their "*_hash" blind index columns (exact match only).
 
 @router.post("/", response_model=PassengerResponse, status_code=201)
 def register_passenger(data: PassengerCreate, db:Session = Depends(get_db), user=Depends(get_current_user)):
-    if db.query(Passenger).filter(Passenger.national_id == data.national_id).first():
+    if db.query(Passenger).filter(Passenger.national_id_hash == blind_index("national_id", data.national_id)).first():
         raise HTTPException(409, f"National ID '{data.national_id}' already registered")
     if data.email:
-        if db.query(Passenger).filter(Passenger.email == data.email).first():
+        if db.query(Passenger).filter(Passenger.email_hash == blind_index("email", data.email)).first():
             raise HTTPException(409, f"Email '{data.email}' already registered")
     passenger = Passenger(**data.model_dump())
     db.add(passenger); db.commit(); db.refresh(passenger)
@@ -39,10 +42,11 @@ def list_passengers(
 ):
     q = db.query(Passenger)
     if search:
+        # Name matches partially; national ID and phone must be typed in full.
         q = q.filter(or_(
             Passenger.full_name.ilike(f"%{search}%"),
-            Passenger.national_id.ilike(f"%{search}%"),
-            Passenger.phone.ilike(f"%{search}%")
+            Passenger.national_id_hash == blind_index("national_id", search),
+            Passenger.phone_hash == blind_index("phone", search)
         ))
     
     total = q.count()
@@ -65,7 +69,7 @@ def get_passenger(passenger_id: int, db: Session=Depends(get_db), user=Depends(g
 
 @router.get("/national-id/{national_id}", response_model=PassengerResponse)
 def get_by_national_id(national_id: str, db: Session=Depends(get_db), user=Depends(get_current_user)):
-    p = db.query(Passenger).filter(Passenger.national_id == national_id).first()
+    p = db.query(Passenger).filter(Passenger.national_id_hash == blind_index("national_id", national_id)).first()
     if not p:
         raise HTTPException(404, f"No passenger with national ID '{national_id}'")
     return p

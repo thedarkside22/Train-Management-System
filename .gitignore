@@ -12,6 +12,7 @@ __pycache__/
 backend/train_system.db
 backend/ci_test.db
 backend/e2e.db
+backend/.data_encryption_key
 
 # Node / Vite
 node_modules/

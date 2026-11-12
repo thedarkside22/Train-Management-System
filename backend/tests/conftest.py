@@ -11,6 +11,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+# Fixed key for the test run, so tests never read or create a real key file.
+os.environ["DATA_ENCRYPTION_KEY"] = "test-only-encryption-key-do-not-use-in-production"
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _isolated_db():
